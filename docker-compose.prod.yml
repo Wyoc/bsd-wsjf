@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_exports:/app/exports
+    environment:
+      - DATABASE_URL=wsjf.db
+      - ALLOWED_HOSTS=["https://yourdomain.com"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=https://yourdomain.com/api
+
+volumes:
+  backend_exports:
