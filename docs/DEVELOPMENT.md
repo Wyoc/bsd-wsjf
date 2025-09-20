@@ -80,9 +80,7 @@ bsd-wsjf/
 ## Code Style
 
 ### Backend (Python)
-- Use Black for formatting
-- Use isort for import sorting
-- Use flake8 for linting
+- Use Ruff for linting and formatting (replaces Black, isort, flake8)
 - Use mypy for type checking
 - Follow PEP 8 guidelines
 

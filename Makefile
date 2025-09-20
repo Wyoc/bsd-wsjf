@@ -45,7 +45,7 @@ test-frontend: ## Run frontend tests
 lint: lint-backend lint-frontend ## Run all linting
 
 lint-backend: ## Run backend linting and formatting
-	cd backend && black . && isort . && flake8 . && mypy .
+	cd backend && ruff check --fix . && ruff format . && mypy .
 
 lint-frontend: ## Run frontend linting
 	cd frontend && npm run lint && npm run type-check
