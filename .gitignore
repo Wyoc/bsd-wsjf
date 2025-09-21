@@ -66,6 +66,7 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
+*.db.wal
 
 # Logs
 logs/
@@ -87,3 +88,9 @@ coverage/
 *.xls
 !templates/*.xlsx
 !templates/*.xls
+
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+.playwright-mcp/
