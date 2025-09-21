@@ -11,4 +11,4 @@ export { PIManagementPage } from './PIManagementPage';
 export { Tooltip } from './Tooltip';
 export { WSJFValuesToolip } from './WSJFValuesToolip';
 export { InlineEdit } from './InlineEdit';
-export { WSJFValueEdit } from './WSJFValueEdit';
+export { WSJFValueEdit, WSJFJobSizeEdit } from './WSJFValueEdit';

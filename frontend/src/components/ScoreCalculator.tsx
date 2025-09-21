@@ -1,9 +1,10 @@
 import { Tooltip } from './Tooltip';
+import { WSJFSubValues, calculateMaxValue } from '../types/wsjf';
 
 interface ScoreCalculatorProps {
-  businessValue: number;
-  timeCriticality: number;
-  riskReduction: number;
+  businessValue: WSJFSubValues;
+  timeCriticality: WSJFSubValues;
+  riskReduction: WSJFSubValues;
   jobSize: number;
 }
 
@@ -15,7 +16,10 @@ export const ScoreCalculator = ({
 }: ScoreCalculatorProps) => {
   const calculateWSJF = () => {
     if (jobSize === 0) return 0;
-    return Math.round(((businessValue + timeCriticality + riskReduction) / jobSize) * 100) / 100;
+    const businessScore = calculateMaxValue(businessValue);
+    const timeScore = calculateMaxValue(timeCriticality);
+    const riskScore = calculateMaxValue(riskReduction);
+    return Math.round(((businessScore + timeScore + riskScore) / jobSize) * 100) / 100;
   };
 
   const score = calculateWSJF();
@@ -26,19 +30,23 @@ export const ScoreCalculator = ({
     return 'text-red-600';
   };
 
+  const businessScore = calculateMaxValue(businessValue);
+  const timeScore = calculateMaxValue(timeCriticality);
+  const riskScore = calculateMaxValue(riskReduction);
+
   const tooltipContent = (
     <div className="text-left">
       <div className="font-semibold mb-2 text-white">WSJF Calculation</div>
       <div className="space-y-1 text-sm">
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           <span className="text-gray-300">Business Value:</span>
-          <span className="font-medium text-white">{businessValue}</span>
+          <span className="font-medium text-white">Max: {businessScore}</span>
           
           <span className="text-gray-300">Time Criticality:</span>
-          <span className="font-medium text-white">{timeCriticality}</span>
+          <span className="font-medium text-white">Max: {timeScore}</span>
           
           <span className="text-gray-300">Risk Reduction:</span>
-          <span className="font-medium text-white">{riskReduction}</span>
+          <span className="font-medium text-white">Max: {riskScore}</span>
           
           <span className="text-gray-300">Job Size:</span>
           <span className="font-medium text-white">{jobSize}</span>
@@ -49,7 +57,7 @@ export const ScoreCalculator = ({
             Formula: (BV + TC + RR) ÷ JS
           </div>
           <div className="text-xs text-gray-400">
-            ({businessValue} + {timeCriticality} + {riskReduction}) ÷ {jobSize} = {score.toFixed(2)}
+            ({businessScore} + {timeScore} + {riskScore}) ÷ {jobSize} = {score.toFixed(2)}
           </div>
         </div>
         

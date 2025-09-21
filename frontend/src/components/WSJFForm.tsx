@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { WSJFItemCreate, WSJFStatus, WSJFItem, FIBONACCI_VALUES, FibonacciValue, ProgramIncrementResponse } from '../types/wsjf';
+import { WSJFItemCreate, WSJFStatus, WSJFItem, FIBONACCI_VALUES, FibonacciValue, WSJFSubValues, SUB_VALUE_LABELS, ProgramIncrementResponse } from '../types/wsjf';
 import { ScoreCalculator } from './ScoreCalculator';
 import { X } from 'lucide-react';
 
@@ -13,6 +13,21 @@ interface WSJFFormProps {
 }
 
 export const WSJFForm = ({ onSubmit, onCancel, initialData, loading, selectedPI, availablePIs }: WSJFFormProps) => {
+  const createEmptySubValues = (): WSJFSubValues => ({
+    pms_business: null,
+    pos_business: null,
+    bos_agri_business: null,
+    bos_cabinet_business: null,
+    consultants_business: null,
+    dev_business: null,
+    dev_technical: null,
+    ia_business: null,
+    ia_technical: null,
+    devops_business: null,
+    devops_technical: null,
+    support_business: null,
+  });
+
   const {
     register,
     handleSubmit,
@@ -22,9 +37,9 @@ export const WSJFForm = ({ onSubmit, onCancel, initialData, loading, selectedPI,
     defaultValues: initialData || {
       subject: '',
       description: '',
-      business_value: 5 as FibonacciValue,
-      time_criticality: 5 as FibonacciValue,
-      risk_reduction: 5 as FibonacciValue,
+      business_value: createEmptySubValues(),
+      time_criticality: createEmptySubValues(),
+      risk_reduction: createEmptySubValues(),
       job_size: 5 as FibonacciValue,
       status: WSJFStatus.NEW,
       owner: '',
@@ -49,7 +64,7 @@ export const WSJFForm = ({ onSubmit, onCancel, initialData, loading, selectedPI,
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium text-gray-900">
             {initialData ? 'Edit WSJF Item' : 'Create New WSJF Item'}
@@ -87,96 +102,113 @@ export const WSJFForm = ({ onSubmit, onCancel, initialData, loading, selectedPI,
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Business Value *
-              </label>
-              <select
-                {...register('business_value', {
-                  required: 'Business value is required',
-                  valueAsNumber: true,
-                })}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                {FIBONACCI_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-              {errors.business_value && (
-                <p className="mt-1 text-sm text-red-600">{errors.business_value.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Time Criticality *
-              </label>
-              <select
-                {...register('time_criticality', {
-                  required: 'Time criticality is required',
-                  valueAsNumber: true,
-                })}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                {FIBONACCI_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-              {errors.time_criticality && (
-                <p className="mt-1 text-sm text-red-600">{errors.time_criticality.message}</p>
-              )}
+          {/* Business Value Sub-Values */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Business Value *
+            </label>
+            <div className="grid grid-cols-3 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
+              {Object.entries(SUB_VALUE_LABELS).map(([key, label]) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {label}
+                  </label>
+                  <select
+                    {...register(`business_value.${key as keyof WSJFSubValues}`, {
+                      valueAsNumber: true,
+                    })}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select</option>
+                    {FIBONACCI_VALUES.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Risk Reduction *
-              </label>
-              <select
-                {...register('risk_reduction', {
-                  required: 'Risk reduction is required',
-                  valueAsNumber: true,
-                })}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                {FIBONACCI_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-              {errors.risk_reduction && (
-                <p className="mt-1 text-sm text-red-600">{errors.risk_reduction.message}</p>
-              )}
+          {/* Time Criticality Sub-Values */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Time Criticality *
+            </label>
+            <div className="grid grid-cols-3 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
+              {Object.entries(SUB_VALUE_LABELS).map(([key, label]) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {label}
+                  </label>
+                  <select
+                    {...register(`time_criticality.${key as keyof WSJFSubValues}`, {
+                      valueAsNumber: true,
+                    })}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select</option>
+                    {FIBONACCI_VALUES.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Job Size *
-              </label>
-              <select
-                {...register('job_size', {
-                  required: 'Job size is required',
-                  valueAsNumber: true,
-                })}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                {FIBONACCI_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-              {errors.job_size && (
-                <p className="mt-1 text-sm text-red-600">{errors.job_size.message}</p>
-              )}
+          {/* Risk Reduction Sub-Values */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Risk Reduction *
+            </label>
+            <div className="grid grid-cols-3 gap-3 p-4 border border-gray-200 rounded-md bg-gray-50">
+              {Object.entries(SUB_VALUE_LABELS).map(([key, label]) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {label}
+                  </label>
+                  <select
+                    {...register(`risk_reduction.${key as keyof WSJFSubValues}`, {
+                      valueAsNumber: true,
+                    })}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select</option>
+                    {FIBONACCI_VALUES.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Job Size *
+            </label>
+            <select
+              {...register('job_size', {
+                required: 'Job size is required',
+                valueAsNumber: true,
+              })}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              {FIBONACCI_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            {errors.job_size && (
+              <p className="mt-1 text-sm text-red-600">{errors.job_size.message}</p>
+            )}
           </div>
 
           <div>

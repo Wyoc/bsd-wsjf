@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Calendar, BarChart3 } from 'lucide-react';
-import { ProgramIncrementResponse, ProgramIncrement, PIStatus } from '../types/wsjf';
+import { ProgramIncrementResponse, PIStatus } from '../types/wsjf';
 import { PIForm } from './PIForm';
 import { apiClient } from '../api/client';
 import toast from 'react-hot-toast';

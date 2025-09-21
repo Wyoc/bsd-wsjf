@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { WSJFItem, WSJFItemUpdate, FibonacciValue } from '../types/wsjf';
+import { WSJFItem, WSJFItemUpdate, getSubValuesDisplay } from '../types/wsjf';
 import { StatusBadge } from './StatusBadge';
 import { InlineEdit } from './InlineEdit';
-import { WSJFValueEdit } from './WSJFValueEdit';
 import { Edit, Trash2, ArrowUpDown } from 'lucide-react';
 
 interface WSJFTableProps {
@@ -115,9 +114,6 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                 <SortButton field="team">Team</SortButton>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <SortButton field="program_increment">PI</SortButton>
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -155,27 +151,23 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div className="grid grid-cols-2 gap-1">
-                    <WSJFValueEdit
-                      value={item.business_value}
-                      onSave={(value) => handleFieldUpdate(item.id, 'business_value', value)}
-                      label="BV"
-                    />
-                    <WSJFValueEdit
-                      value={item.time_criticality}
-                      onSave={(value) => handleFieldUpdate(item.id, 'time_criticality', value)}
-                      label="TC"
-                    />
-                    <WSJFValueEdit
-                      value={item.risk_reduction}
-                      onSave={(value) => handleFieldUpdate(item.id, 'risk_reduction', value)}
-                      label="RR"
-                    />
-                    <WSJFValueEdit
-                      value={item.job_size}
-                      onSave={(value) => handleFieldUpdate(item.id, 'job_size', value)}
-                      label="JS"
-                    />
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-blue-600">BV:</span>
+                      <span className="text-xs">{getSubValuesDisplay(item.business_value)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-green-600">TC:</span>
+                      <span className="text-xs">{getSubValuesDisplay(item.time_criticality)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-purple-600">RR:</span>
+                      <span className="text-xs">{getSubValuesDisplay(item.risk_reduction)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-gray-600">JS:</span>
+                      <span className="text-xs font-semibold">{item.job_size}</span>
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -194,9 +186,6 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                     onSave={(value) => handleFieldUpdate(item.id, 'team', value.toString())}
                     placeholder="Add team"
                   />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {item.program_increment}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex space-x-2">
