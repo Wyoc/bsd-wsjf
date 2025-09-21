@@ -1,8 +1,107 @@
 import { useState } from 'react';
-import { WSJFItem, WSJFItemUpdate, getSubValuesDisplay } from '../types/wsjf';
-import { StatusBadge } from './StatusBadge';
+import { WSJFItem, WSJFItemUpdate, WSJFStatus, getSubValuesDisplay, getJobSizeDisplay, hasIncompleteValues, getActiveTeams } from '../types/wsjf';
 import { InlineEdit } from './InlineEdit';
 import { Edit, Trash2, ArrowUpDown } from 'lucide-react';
+
+interface StatusCellProps {
+  status: WSJFStatus;
+  onStatusChange: (newStatus: WSJFStatus) => Promise<void>;
+}
+
+const StatusCell = ({ status, onStatusChange }: StatusCellProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const statusOptions = [
+    { value: WSJFStatus.NEW, label: WSJFStatus.NEW },
+    { value: WSJFStatus.GO, label: WSJFStatus.GO },
+    { value: WSJFStatus.NO_GO, label: WSJFStatus.NO_GO },
+  ];
+
+  const getStatusStyle = (status: WSJFStatus) => {
+    switch (status) {
+      case WSJFStatus.GO:
+        return 'bg-green-100 text-green-800';
+      case WSJFStatus.NO_GO:
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    setIsEditing(false);
+    if (newStatus !== status) {
+      await onStatusChange(newStatus as WSJFStatus);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <select
+        value={status}
+        onChange={(e) => handleStatusChange(e.target.value)}
+        onBlur={() => setIsEditing(false)}
+        autoFocus
+        className="text-xs font-medium px-2.5 py-0.5 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        {statusOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <div 
+      onClick={() => setIsEditing(true)}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 ${getStatusStyle(status)}`}
+      title="Click to change status"
+    >
+      {status}
+    </div>
+  );
+};
+
+interface TeamBadgesProps {
+  item: WSJFItem;
+}
+
+const TeamBadges = ({ item }: TeamBadgesProps) => {
+  const activeTeams = getActiveTeams(item);
+  
+  if (activeTeams.length === 0) {
+    return <span className="text-gray-400 text-xs">No teams</span>;
+  }
+  
+  const getBadgeStyle = (team: string) => {
+    switch (team) {
+      case 'Dev':
+        return 'bg-blue-100 text-blue-800';
+      case 'AI':
+        return 'bg-purple-100 text-purple-800';
+      case 'Ops':
+        return 'bg-green-100 text-green-800';
+      case 'Support':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  return (
+    <div className="flex flex-wrap gap-1">
+      {activeTeams.map((team) => (
+        <span
+          key={team}
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getBadgeStyle(team)}`}
+        >
+          {team}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 interface WSJFTableProps {
   items: WSJFItem[];
@@ -18,6 +117,7 @@ type SortDirection = 'asc' | 'desc';
 export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTableProps) => {
   const [sortField, setSortField] = useState<SortField>('priority');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -28,7 +128,18 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
     }
   };
 
-  const sortedItems = [...items].sort((a, b) => {
+  // Get all unique teams from items
+  const allTeams = [...new Set(items.flatMap(item => getActiveTeams(item)))].sort();
+
+  // Filter items by selected teams
+  const filteredItems = selectedTeams.length === 0 
+    ? items 
+    : items.filter(item => {
+        const itemTeams = getActiveTeams(item);
+        return selectedTeams.some(selectedTeam => itemTeams.includes(selectedTeam));
+      });
+
+  const sortedItems = [...filteredItems].sort((a, b) => {
     let aValue: any;
     let bValue: any;
 
@@ -88,6 +199,52 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
 
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-md">
+      {/* Filter Controls */}
+      <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="space-y-3">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-gray-700">Filter by Teams:</span>
+            <div className="flex flex-wrap gap-2">
+              {allTeams.map((team) => (
+                <label key={team} className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    checked={selectedTeams.includes(team)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedTeams([...selectedTeams, team]);
+                      } else {
+                        setSelectedTeams(selectedTeams.filter(t => t !== team));
+                      }
+                    }}
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{team}</span>
+                </label>
+              ))}
+            </div>
+            {selectedTeams.length > 0 && (
+              <button
+                onClick={() => setSelectedTeams([])}
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+          {selectedTeams.length > 0 && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">
+                Showing {sortedItems.length} of {items.length} items
+              </span>
+              <span className="text-sm text-gray-500">
+                (filtered by: {selectedTeams.join(', ')})
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+      
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -119,12 +276,27 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedItems.map((item, index) => (
+            {sortedItems.map((item, index) => {
+              const isIncomplete = hasIncompleteValues(item);
+              
+              const getRowHighlight = () => {
+                if (isIncomplete) {
+                  return 'bg-orange-50 border-l-4 border-orange-300';
+                }
+                
+                if (item.status === WSJFStatus.GO) {
+                  return 'bg-green-50';
+                } else if (item.status === WSJFStatus.NO_GO) {
+                  return 'bg-red-50';
+                }
+                
+                return '';
+              };
+              
+              return (
               <tr
                 key={item.id}
-                className={`hover:bg-gray-50 ${
-                  item.wsjf_score >= 2.5 ? 'bg-yellow-50' : ''
-                }`}
+                className={getRowHighlight()}
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {index + 1}
@@ -166,12 +338,15 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-gray-600">JS:</span>
-                      <span className="text-xs font-semibold">{item.job_size}</span>
+                      <span className="text-xs">{getJobSizeDisplay(item.job_size)}</span>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <StatusBadge status={item.status} />
+                  <StatusCell 
+                    status={item.status}
+                    onStatusChange={(newStatus) => handleFieldUpdate(item.id, 'status', newStatus)}
+                  />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <InlineEdit
@@ -181,11 +356,7 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <InlineEdit
-                    value={item.team || ''}
-                    onSave={(value) => handleFieldUpdate(item.id, 'team', value.toString())}
-                    placeholder="Add team"
-                  />
+                  <TeamBadges item={item} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex space-x-2">
@@ -206,7 +377,8 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
