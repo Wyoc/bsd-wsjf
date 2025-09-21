@@ -103,7 +103,7 @@ class ExcelService:
             worksheet.write(row, 9, item.status.value, cell_format)
             worksheet.write(row, 10, item.owner or "", cell_format)
             worksheet.write(row, 11, item.team or "", cell_format)
-            worksheet.write(row, 12, item.program_increment, cell_format)
+            worksheet.write(row, 12, str(item.program_increment_id), cell_format)
             worksheet.write(
                 row, 13, item.created_date.strftime("%Y-%m-%d %H:%M:%S"), cell_format
             )

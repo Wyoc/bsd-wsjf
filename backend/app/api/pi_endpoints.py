@@ -1,13 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 
 from app.models import (
     ProgramIncrement,
     ProgramIncrementCreate,
     ProgramIncrementResponse,
-    ProgramIncrementUpdate,
     ProgramIncrementStats,
+    ProgramIncrementUpdate,
 )
 from app.services import pi_service
 
@@ -38,10 +38,10 @@ async def create_pi(pi: ProgramIncrementCreate):
     existing_pi = pi_service.get_pi_by_name(pi.name)
     if existing_pi:
         raise HTTPException(
-            status_code=409, 
-            detail=f"Program Increment with name '{pi.name}' already exists"
+            status_code=409,
+            detail=f"Program Increment with name '{pi.name}' already exists",
         )
-    
+
     return pi_service.create_pi(pi)
 
 

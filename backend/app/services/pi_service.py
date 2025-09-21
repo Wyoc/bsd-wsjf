@@ -1,13 +1,12 @@
 from uuid import UUID
-from datetime import datetime
 
 from app.core.database import db_manager
 from app.models import (
     ProgramIncrement,
     ProgramIncrementCreate,
     ProgramIncrementResponse,
-    ProgramIncrementUpdate,
     ProgramIncrementStats,
+    ProgramIncrementUpdate,
 )
 
 
@@ -91,7 +90,7 @@ class ProgramIncrementService:
             list[ProgramIncrementResponse]: List of PIs with item counts.
         """
         conn = self.db.connect()
-        
+
         # Get PIs with item counts
         results = conn.execute(
             """
@@ -111,7 +110,9 @@ class ProgramIncrementService:
 
         return pis
 
-    def update_pi(self, pi_id: UUID, update_data: ProgramIncrementUpdate) -> ProgramIncrement | None:
+    def update_pi(
+        self, pi_id: UUID, update_data: ProgramIncrementUpdate
+    ) -> ProgramIncrement | None:
         """Update a Program Increment.
 
         Args:
@@ -142,7 +143,8 @@ class ProgramIncrementService:
 
         conn = self.db.connect()
         conn.execute(
-            f"UPDATE program_increments SET {', '.join(set_clauses)} WHERE id = ?", values
+            f"UPDATE program_increments SET {', '.join(set_clauses)} WHERE id = ?",
+            values,
         )
 
         return self.get_pi(pi_id)
@@ -157,7 +159,9 @@ class ProgramIncrementService:
             bool: True if the PI was deleted, False if not found.
         """
         conn = self.db.connect()
-        result = conn.execute("DELETE FROM program_increments WHERE id = ?", [str(pi_id)])
+        result = conn.execute(
+            "DELETE FROM program_increments WHERE id = ?", [str(pi_id)]
+        )
         return result.rowcount > 0
 
     def get_pi_stats(self, pi_id: UUID) -> ProgramIncrementStats | None:
@@ -174,31 +178,33 @@ class ProgramIncrementService:
             return None
 
         conn = self.db.connect()
-        
+
         # Get basic stats
         stats_result = conn.execute(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_items,
                 AVG((business_value + time_criticality + risk_reduction) * 1.0 / job_size) as avg_wsjf_score
-            FROM wsjf_items 
+            FROM wsjf_items
             WHERE program_increment_id = ?
             """,
-            [str(pi_id)]
+            [str(pi_id)],
         ).fetchone()
 
         total_items = stats_result[0] if stats_result else 0
-        avg_wsjf_score = round(stats_result[1], 2) if stats_result and stats_result[1] else 0.0
+        avg_wsjf_score = (
+            round(stats_result[1], 2) if stats_result and stats_result[1] else 0.0
+        )
 
         # Get status distribution
         status_results = conn.execute(
             """
             SELECT status, COUNT(*) as count
-            FROM wsjf_items 
+            FROM wsjf_items
             WHERE program_increment_id = ?
             GROUP BY status
             """,
-            [str(pi_id)]
+            [str(pi_id)],
         ).fetchall()
 
         status_distribution = {row[0]: row[1] for row in status_results}
@@ -207,11 +213,11 @@ class ProgramIncrementService:
         team_results = conn.execute(
             """
             SELECT COALESCE(team, 'Unassigned') as team, COUNT(*) as count
-            FROM wsjf_items 
+            FROM wsjf_items
             WHERE program_increment_id = ?
             GROUP BY team
             """,
-            [str(pi_id)]
+            [str(pi_id)],
         ).fetchall()
 
         team_distribution = {row[0]: row[1] for row in team_results}

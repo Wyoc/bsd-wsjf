@@ -5,13 +5,14 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ProgramIncrementBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100, description="PI name (e.g., PI18)")
+    name: str = Field(
+        ..., min_length=1, max_length=100, description="PI name (e.g., PI18)"
+    )
     description: str = Field("", max_length=500, description="PI description")
     start_date: datetime = Field(..., description="PI start date")
     end_date: datetime = Field(..., description="PI end date")
     status: str = Field(
-        "Planning", 
-        description="PI status (Planning, Active, Completed, Cancelled)"
+        "Planning", description="PI status (Planning, Active, Completed, Cancelled)"
     )
 
     @field_validator("end_date")
@@ -40,7 +41,7 @@ class ProgramIncrementCreate(ProgramIncrementBase):
                 "description": "Q4 2025 Product Enhancement Initiative",
                 "start_date": "2025-10-01T00:00:00Z",
                 "end_date": "2025-12-20T23:59:59Z",
-                "status": "Planning"
+                "status": "Planning",
             }
         }
     }

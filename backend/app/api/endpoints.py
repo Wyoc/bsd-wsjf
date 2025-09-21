@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 
 from app.models import (
@@ -17,9 +17,7 @@ router = APIRouter(prefix="/api", tags=["WSJF"])
 
 @router.get("/items", response_model=list[WSJFItemResponse])
 async def get_items(
-    program_increment_id: UUID | None = Query(
-        None, description="Filter by Program Increment ID"
-    ),
+    program_increment_id: UUID | None = None,
 ):
     """Retrieve all WSJF items with priority rankings.
 
@@ -115,12 +113,8 @@ async def create_batch_items(batch: WSJFItemBatch):
 
 @router.get("/export/excel")
 async def export_excel(
-    program_increment_id: UUID | None = Query(
-        None, description="Filter by Program Increment ID"
-    ),
-    download: bool = Query(
-        False, description="Force download instead of inline display"
-    ),
+    program_increment_id: UUID | None = None,
+    download: bool = False,
 ):
     """Generate and download Excel file with WSJF items.
 
@@ -137,7 +131,7 @@ async def export_excel(
         HTTPException: 404 if no WSJF items found.
     """
     from app.services import pi_service
-    
+
     items = wsjf_service.get_all_items(program_increment_id=program_increment_id)
 
     if not items:
@@ -187,7 +181,7 @@ async def health_check():
 
 
 @router.get("/stats")
-async def get_stats(program_increment_id: UUID | None = Query(None)):
+async def get_stats(program_increment_id: UUID | None = None):
     """Get statistics about WSJF items.
 
     Args:
@@ -229,5 +223,7 @@ async def get_stats(program_increment_id: UUID | None = Query(None)):
         "avg_wsjf_score": round(avg_wsjf_score, 2),
         "status_distribution": status_distribution,
         "team_distribution": team_distribution,
-        "program_increment_id": str(program_increment_id) if program_increment_id else None,
+        "program_increment_id": str(program_increment_id)
+        if program_increment_id
+        else None,
     }

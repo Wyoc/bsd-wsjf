@@ -30,12 +30,12 @@ class DatabaseManager:
         # Drop tables to ensure we have the updated schema
         drop_tables_sql = [
             "DROP TABLE IF EXISTS wsjf_items;",
-            "DROP TABLE IF EXISTS program_increments;"
+            "DROP TABLE IF EXISTS program_increments;",
         ]
-        
+
         for sql in drop_tables_sql:
             connection.execute(sql)
-        
+
         # Create program_increments table
         create_pi_table_sql = """
         CREATE TABLE program_increments (
@@ -50,16 +50,16 @@ class DatabaseManager:
             CHECK (status IN ('Planning', 'Active', 'Completed', 'Cancelled'))
         );
         """
-        
+
         # Create wsjf_items table with foreign key to program_increments
         create_wsjf_table_sql = """
         CREATE TABLE wsjf_items (
             id UUID PRIMARY KEY,
             subject VARCHAR(200) NOT NULL,
             description VARCHAR(1000) DEFAULT '',
-            business_value INTEGER NOT NULL CHECK (business_value IN (1, 2, 3, 5, 8, 13, 21)),
-            time_criticality INTEGER NOT NULL CHECK (time_criticality IN (1, 2, 3, 5, 8, 13, 21)),
-            risk_reduction INTEGER NOT NULL CHECK (risk_reduction IN (1, 2, 3, 5, 8, 13, 21)),
+            business_value JSON NOT NULL,
+            time_criticality JSON NOT NULL,
+            risk_reduction JSON NOT NULL,
             job_size INTEGER NOT NULL CHECK (job_size IN (1, 2, 3, 5, 8, 13, 21)),
             status VARCHAR(20) NOT NULL DEFAULT 'New',
             owner VARCHAR(100),

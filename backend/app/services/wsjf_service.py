@@ -1,9 +1,14 @@
-from uuid import UUID
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from app.core.database import db_manager
-from app.models import WSJFItem, WSJFItemCreate, WSJFItemResponse, WSJFItemUpdate
-from app.models import ProgramIncrement, ProgramIncrementCreate
+from app.models import (
+    ProgramIncrement,
+    WSJFItem,
+    WSJFItemCreate,
+    WSJFItemResponse,
+    WSJFItemUpdate,
+)
 
 
 class WSJFService:
@@ -33,9 +38,9 @@ class WSJFService:
                 str(item.id),
                 item.subject,
                 item.description,
-                item.business_value,
-                item.time_criticality,
-                item.risk_reduction,
+                item.business_value.model_dump_json(),
+                item.time_criticality.model_dump_json(),
+                item.risk_reduction.model_dump_json(),
                 item.job_size,
                 item.status.value,
                 item.owner,
@@ -196,12 +201,12 @@ class WSJFService:
         """
         # Create or get sample PI
         conn = self.db.connect()
-        
+
         # Check if sample PI exists
         pi_result = conn.execute(
             "SELECT id FROM program_increments WHERE name = 'PI18'"
         ).fetchone()
-        
+
         if pi_result:
             sample_pi_id = UUID(pi_result[0])
         else:
@@ -211,9 +216,9 @@ class WSJFService:
                 description="Sample Program Increment for demonstration",
                 start_date=datetime.utcnow(),
                 end_date=datetime.utcnow() + timedelta(days=90),
-                status="Planning"
+                status="Planning",
             )
-            
+
             conn.execute(
                 """
                 INSERT INTO program_increments (
@@ -232,13 +237,19 @@ class WSJFService:
             )
             sample_pi_id = sample_pi.id
 
+        from app.models.wsjf_item import WSJFSubValues
+
         sample_items = [
             WSJFItemCreate(
                 subject="User Authentication System",
                 description="Implement secure login and registration system",
-                business_value=8,
-                time_criticality=8,
-                risk_reduction=5,
+                business_value=WSJFSubValues(
+                    pms_business=21, dev_technical=13, ia_business=8
+                ),
+                time_criticality=WSJFSubValues(
+                    consultants_business=13, support_business=5
+                ),
+                risk_reduction=WSJFSubValues(dev_business=8, devops_technical=3),
                 job_size=5,
                 owner="Alice Johnson",
                 team="Security Team",
@@ -247,9 +258,11 @@ class WSJFService:
             WSJFItemCreate(
                 subject="Mobile App Dashboard",
                 description="Create responsive dashboard for mobile users",
-                business_value=5,
-                time_criticality=3,
-                risk_reduction=3,
+                business_value=WSJFSubValues(pos_business=8, dev_business=5),
+                time_criticality=WSJFSubValues(ia_technical=5, devops_business=3),
+                risk_reduction=WSJFSubValues(
+                    consultants_business=3, support_business=2
+                ),
                 job_size=8,
                 owner="Bob Smith",
                 team="Mobile Team",
@@ -258,9 +271,11 @@ class WSJFService:
             WSJFItemCreate(
                 subject="Payment Gateway Integration",
                 description="Integrate with third-party payment processors",
-                business_value=13,
-                time_criticality=8,
-                risk_reduction=5,
+                business_value=WSJFSubValues(bos_agri_business=21, pms_business=13),
+                time_criticality=WSJFSubValues(
+                    bos_cabinet_business=13, consultants_business=8
+                ),
+                risk_reduction=WSJFSubValues(dev_technical=8, support_business=5),
                 job_size=8,
                 owner="Carol Davis",
                 team="Backend Team",
@@ -269,7 +284,9 @@ class WSJFService:
         ]
 
         # Clear existing sample data and create new
-        conn.execute("DELETE FROM wsjf_items WHERE program_increment_id = ?", [str(sample_pi_id)])
+        conn.execute(
+            "DELETE FROM wsjf_items WHERE program_increment_id = ?", [str(sample_pi_id)]
+        )
 
         created_items = self.create_batch(sample_items)
         return self._add_priorities(
@@ -285,19 +302,28 @@ class WSJFService:
         Returns:
             WSJFItem: Converted WSJF item object.
         """
+        import json
+
+        from app.models.wsjf_item import WSJFSubValues
+
         # Handle UUID that might already be a UUID object or string
         item_id = row[0] if isinstance(row[0], UUID) else UUID(row[0])
 
+        # Parse JSON sub-values
+        business_value = WSJFSubValues.model_validate(json.loads(row[3]))
+        time_criticality = WSJFSubValues.model_validate(json.loads(row[4]))
+        risk_reduction = WSJFSubValues.model_validate(json.loads(row[5]))
+
         # Handle program_increment_id UUID
         pi_id = row[10] if isinstance(row[10], UUID) else UUID(row[10])
-        
+
         return WSJFItem(
             id=item_id,
             subject=row[1],
             description=row[2],
-            business_value=row[3],
-            time_criticality=row[4],
-            risk_reduction=row[5],
+            business_value=business_value,
+            time_criticality=time_criticality,
+            risk_reduction=risk_reduction,
             job_size=row[6],
             status=row[7],
             owner=row[8],
