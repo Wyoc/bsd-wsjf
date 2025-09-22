@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { WSJFItem, WSJFItemUpdate, WSJFStatus, getSubValuesDisplay, getJobSizeDisplay, hasIncompleteValues, getActiveTeams } from '../types/wsjf';
 import { InlineEdit } from './InlineEdit';
 import { Edit, Trash2, ArrowUpDown } from 'lucide-react';
@@ -10,6 +10,7 @@ interface StatusCellProps {
 
 const StatusCell = ({ status, onStatusChange }: StatusCellProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const selectRef = useRef<HTMLSelectElement>(null);
   const statusOptions = [
     { value: WSJFStatus.NEW, label: WSJFStatus.NEW },
     { value: WSJFStatus.GO, label: WSJFStatus.GO },
@@ -34,14 +35,51 @@ const StatusCell = ({ status, onStatusChange }: StatusCellProps) => {
     }
   };
 
+  const handleMouseEnter = () => {
+    setIsEditing(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Small delay to allow click on options to register
+    setTimeout(() => {
+      setIsEditing(false);
+    }, 150);
+  };
+
+  const handleBlur = () => {
+    // Small delay to allow click on options to register
+    setTimeout(() => {
+      setIsEditing(false);
+    }, 150);
+  };
+
+  useEffect(() => {
+    if (isEditing && selectRef.current) {
+      // Focus and programmatically open the dropdown
+      selectRef.current.focus();
+      // Small delay to ensure the element is rendered
+      setTimeout(() => {
+        if (selectRef.current) {
+          const event = new MouseEvent('mousedown', {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+          });
+          selectRef.current.dispatchEvent(event);
+        }
+      }, 10);
+    }
+  }, [isEditing]);
+
   if (isEditing) {
     return (
       <select
+        ref={selectRef}
         value={status}
         onChange={(e) => handleStatusChange(e.target.value)}
-        onBlur={() => setIsEditing(false)}
-        autoFocus
-        className="text-xs font-medium px-2.5 py-0.5 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onBlur={handleBlur}
+        onMouseLeave={handleMouseLeave}
+        className="text-xs font-medium px-2.5 py-0.5 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-16 min-w-16"
       >
         {statusOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -53,10 +91,11 @@ const StatusCell = ({ status, onStatusChange }: StatusCellProps) => {
   }
 
   return (
-    <div 
-      onClick={() => setIsEditing(true)}
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 ${getStatusStyle(status)}`}
-      title="Click to change status"
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 w-16 min-w-16 ${getStatusStyle(status)}`}
+      title="Hover to change status"
     >
       {status}
     </div>
@@ -118,6 +157,7 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
   const [sortField, setSortField] = useState<SortField>('priority');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<WSJFStatus[]>([]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -131,13 +171,17 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
   // Get all unique teams from items
   const allTeams = [...new Set(items.flatMap(item => getActiveTeams(item)))].sort();
 
-  // Filter items by selected teams
-  const filteredItems = selectedTeams.length === 0 
-    ? items 
-    : items.filter(item => {
-        const itemTeams = getActiveTeams(item);
-        return selectedTeams.some(selectedTeam => itemTeams.includes(selectedTeam));
-      });
+  // Get all unique statuses from items
+  const allStatuses = [...new Set(items.map(item => item.status))].sort();
+
+  // Filter items by selected teams and statuses
+  const filteredItems = items.filter(item => {
+    const teamMatch = selectedTeams.length === 0 || selectedTeams.some(selectedTeam =>
+      getActiveTeams(item).includes(selectedTeam)
+    );
+    const statusMatch = selectedStatuses.length === 0 || selectedStatuses.includes(item.status);
+    return teamMatch && statusMatch;
+  });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     let aValue: any;
@@ -223,23 +267,55 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
                 </label>
               ))}
             </div>
-            {selectedTeams.length > 0 && (
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-gray-700">Filter by Status:</span>
+            <div className="flex flex-wrap gap-2">
+              {allStatuses.map((status) => (
+                <label key={status} className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    checked={selectedStatuses.includes(status)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedStatuses([...selectedStatuses, status]);
+                      } else {
+                        setSelectedStatuses(selectedStatuses.filter(s => s !== status));
+                      }
+                    }}
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{status}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          {(selectedTeams.length > 0 || selectedStatuses.length > 0) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">
+                  Showing {sortedItems.length} of {items.length} items
+                </span>
+                {selectedTeams.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    (teams: {selectedTeams.join(', ')})
+                  </span>
+                )}
+                {selectedStatuses.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    (status: {selectedStatuses.join(', ')})
+                  </span>
+                )}
+              </div>
               <button
-                onClick={() => setSelectedTeams([])}
+                onClick={() => {
+                  setSelectedTeams([]);
+                  setSelectedStatuses([]);
+                }}
                 className="text-sm text-indigo-600 hover:text-indigo-500"
               >
-                Clear filters
+                Clear all filters
               </button>
-            )}
-          </div>
-          {selectedTeams.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">
-                Showing {sortedItems.length} of {items.length} items
-              </span>
-              <span className="text-sm text-gray-500">
-                (filtered by: {selectedTeams.join(', ')})
-              </span>
             </div>
           )}
         </div>
