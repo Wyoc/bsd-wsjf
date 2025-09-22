@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { WSJFItem, WSJFItemUpdate, WSJFStatus, getSubValuesDisplay, getJobSizeDisplay, hasIncompleteValues, getActiveTeams } from '../types/wsjf';
 import { InlineEdit } from './InlineEdit';
 import { Edit, Trash2, ArrowUpDown } from 'lucide-react';
@@ -243,83 +244,89 @@ export const WSJFTable = ({ items, onEdit, onDelete, onUpdate, loading }: WSJFTa
 
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-md">
-      {/* Filter Controls */}
-      <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-        <div className="space-y-3">
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-700">Filter by Teams:</span>
-            <div className="flex flex-wrap gap-2">
-              {allTeams.map((team) => (
-                <label key={team} className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    checked={selectedTeams.includes(team)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedTeams([...selectedTeams, team]);
-                      } else {
-                        setSelectedTeams(selectedTeams.filter(t => t !== team));
-                      }
-                    }}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{team}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-700">Filter by Status:</span>
-            <div className="flex flex-wrap gap-2">
-              {allStatuses.map((status) => (
-                <label key={status} className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    checked={selectedStatuses.includes(status)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedStatuses([...selectedStatuses, status]);
-                      } else {
-                        setSelectedStatuses(selectedStatuses.filter(s => s !== status));
-                      }
-                    }}
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{status}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          {(selectedTeams.length > 0 || selectedStatuses.length > 0) && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">
-                  Showing {sortedItems.length} of {items.length} items
+      {/* Render filters to the external container */}
+      {typeof document !== 'undefined' && document.getElementById('wsjf-filters-container') &&
+        createPortal(
+          <div className="flex items-center space-x-6">
+            {(selectedTeams.length > 0 || selectedStatuses.length > 0) && (
+              <div className="flex items-center space-x-2 text-sm">
+                <span className="text-blue-600">
+                  {sortedItems.length} of {items.length} shown
                 </span>
                 {selectedTeams.length > 0 && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-blue-500">
                     (teams: {selectedTeams.join(', ')})
                   </span>
                 )}
                 {selectedStatuses.length > 0 && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-blue-500">
                     (status: {selectedStatuses.join(', ')})
                   </span>
                 )}
               </div>
+            )}
+
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-medium text-blue-700">Teams:</span>
+              <div className="flex flex-wrap gap-2">
+                {allTeams.map((team) => (
+                  <label key={team} className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                      checked={selectedTeams.includes(team)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTeams([...selectedTeams, team]);
+                        } else {
+                          setSelectedTeams(selectedTeams.filter(t => t !== team));
+                        }
+                      }}
+                    />
+                    <span className="ml-1 text-sm text-blue-700">{team}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-medium text-blue-700">Status:</span>
+              <div className="flex flex-wrap gap-2">
+                {allStatuses.map((status) => (
+                  <label key={status} className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                      checked={selectedStatuses.includes(status)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedStatuses([...selectedStatuses, status]);
+                        } else {
+                          setSelectedStatuses(selectedStatuses.filter(s => s !== status));
+                        }
+                      }}
+                    />
+                    <span className="ml-1 text-sm text-blue-700">{status}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {(selectedTeams.length > 0 || selectedStatuses.length > 0) && (
               <button
                 onClick={() => {
                   setSelectedTeams([]);
                   setSelectedStatuses([]);
                 }}
-                className="text-sm text-indigo-600 hover:text-indigo-500"
+                className="text-sm text-blue-600 hover:text-blue-500 font-medium"
               >
-                Clear all filters
+                Clear all
               </button>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>,
+          document.getElementById('wsjf-filters-container')!
+        )
+      }
       
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">

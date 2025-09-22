@@ -168,13 +168,20 @@ function App() {
               {/* Content Area */}
               {selectedPI ? (
                 <div>
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                    <h3 className="text-lg font-medium text-blue-800">
-                      Items for {selectedPI.name}
-                    </h3>
-                    <p className="text-sm text-blue-600">
-                      {items.length} items loaded
-                    </p>
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-blue-800">
+                          Items for {selectedPI.name}
+                        </h3>
+                        <p className="text-sm text-blue-600">
+                          {items.length} items loaded
+                        </p>
+                      </div>
+
+                      {/* Filters will be added here by WSJFTable */}
+                      <div id="wsjf-filters-container"></div>
+                    </div>
                   </div>
                   <WSJFTable
                     items={items}
