@@ -38,7 +38,7 @@ class WSJFSubValues(BaseModel):
         return max(values) if values else 0
 
 
-# Job Size sub-values structure  
+# Job Size sub-values structure
 class JobSizeSubValues(BaseModel):
     dev: int | None = None
     ia: int | None = None
@@ -56,12 +56,11 @@ class JobSizeSubValues(BaseModel):
         """Validate that values are Fibonacci numbers or None."""
         if v is None:
             return v
-        
+
         fibonacci_sequence = [1, 2, 3, 5, 8, 13, 21]
         if v not in fibonacci_sequence:
             raise ValueError(f"Value must be a Fibonacci number: {fibonacci_sequence}")
         return v
-
 
 
 # Fibonacci values for job size estimation
@@ -99,7 +98,6 @@ class WSJFItemBase(BaseModel):
     # Items can now be created with no values, but should be highlighted in UI
 
 
-
 class WSJFItemCreate(WSJFItemBase):
     model_config = {
         "json_schema_extra": {
@@ -132,7 +130,6 @@ class WSJFItemUpdate(BaseModel):
     program_increment_id: UUID | None = Field(
         None, description="Program Increment UUID reference"
     )
-
 
 
 class WSJFItem(WSJFItemBase):

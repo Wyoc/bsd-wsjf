@@ -27,7 +27,7 @@ dev: ## Start development environment (both frontend and backend)
 	docker-compose up --build
 
 dev-backend: ## Start backend development server
-	cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 dev-frontend: ## Start frontend development server
 	cd frontend && npm run dev
@@ -36,7 +36,22 @@ dev-frontend: ## Start frontend development server
 test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Run backend tests
-	cd backend && pytest
+	cd backend && uv run pytest
+
+test-backend-unit: ## Run only unit tests
+	cd backend && uv run pytest -m "unit" -v
+
+test-backend-integration: ## Run only integration tests
+	cd backend && uv run pytest -m "integration" -v
+
+test-backend-database: ## Run only database tests
+	cd backend && uv run pytest -m "database" -v
+
+test-backend-coverage: ## Run backend tests with coverage report
+	cd backend && uv run pytest --cov=app --cov-report=html --cov-report=term-missing
+
+test-backend-watch: ## Run backend tests in watch mode
+	cd backend && uv run pytest-watch
 
 test-frontend: ## Run frontend tests
 	cd frontend && npm run test
@@ -45,7 +60,13 @@ test-frontend: ## Run frontend tests
 lint: lint-backend lint-frontend ## Run all linting
 
 lint-backend: ## Run backend linting and formatting
-	cd backend && ruff check --fix . && ruff format . && mypy .
+	cd backend && uv run ruff check --fix . && uv run ruff format .
+
+lint-backend-strict: ## Run backend linting, formatting, and type checking
+	cd backend && uv run ruff check --fix . && uv run ruff format . && uv run mypy .
+
+typecheck-backend: ## Run backend type checking only
+	cd backend && uv run mypy .
 
 lint-frontend: ## Run frontend linting
 	cd frontend && npm run lint && npm run type-check

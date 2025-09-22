@@ -30,18 +30,20 @@ class ProgramIncrementService:
             """
             INSERT INTO program_increments (
                 id, name, description, start_date, end_date, status, created_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%(id)s, %(name)s, %(description)s, %(start_date)s, %(end_date)s, %(status)s, %(created_date)s)
             """,
-            [
-                str(pi.id),
-                pi.name,
-                pi.description,
-                pi.start_date,
-                pi.end_date,
-                pi.status,
-                pi.created_date,
-            ],
+            {
+                "id": str(pi.id),
+                "name": pi.name,
+                "description": pi.description,
+                "start_date": pi.start_date,
+                "end_date": pi.end_date,
+                "status": pi.status,
+                "created_date": pi.created_date,
+            },
         )
+
+        conn.commit()
 
         return pi
 
@@ -55,9 +57,9 @@ class ProgramIncrementService:
             ProgramIncrement | None: The PI if found, None otherwise.
         """
         conn = self.db.connect()
-        result = conn.execute(
-            "SELECT * FROM program_increments WHERE id = ?", [str(pi_id)]
-        ).fetchone()
+        result = conn.fetchone(
+            "SELECT * FROM program_increments WHERE id = %(id)s", {"id": str(pi_id)}
+        )
 
         if not result:
             return None
@@ -92,7 +94,7 @@ class ProgramIncrementService:
         conn = self.db.connect()
 
         # Get PIs with item counts
-        results = conn.execute(
+        results = conn.fetchall(
             """
             SELECT p.*, COUNT(w.id) as item_count
             FROM program_increments p
@@ -100,12 +102,14 @@ class ProgramIncrementService:
             GROUP BY p.id, p.name, p.description, p.start_date, p.end_date, p.status, p.created_date
             ORDER BY p.created_date DESC
             """
-        ).fetchall()
+        )
 
         pis = []
         for row in results:
-            pi = self._row_to_pi(row[:-1])  # Exclude item_count from PI data
-            pi.item_count = row[-1]  # Set item_count from the last column
+            # Create PI dict excluding item_count
+            pi_data = {k: v for k, v in row.items() if k != "item_count"}
+            pi = self._row_to_pi(pi_data)
+            pi.item_count = row["item_count"]  # Set item_count from query result
             pis.append(ProgramIncrementResponse(**pi.model_dump()))
 
         return pis
@@ -231,26 +235,26 @@ class ProgramIncrementService:
             team_distribution=team_distribution,
         )
 
-    def _row_to_pi(self, row) -> ProgramIncrement:
+    def _row_to_pi(self, row: dict) -> ProgramIncrement:
         """Convert database row to ProgramIncrement.
 
         Args:
-            row: Database row tuple containing PI data.
+            row: Database row dictionary containing PI data.
 
         Returns:
             ProgramIncrement: Converted PI object.
         """
         # Handle UUID that might already be a UUID object or string
-        pi_id = row[0] if isinstance(row[0], UUID) else UUID(row[0])
+        pi_id = row["id"] if isinstance(row["id"], UUID) else UUID(row["id"])
 
         return ProgramIncrement(
             id=pi_id,
-            name=row[1],
-            description=row[2],
-            start_date=row[3],
-            end_date=row[4],
-            status=row[5],
-            created_date=row[6],
+            name=row["name"],
+            description=row["description"],
+            start_date=row["start_date"],
+            end_date=row["end_date"],
+            status=row["status"],
+            created_date=row["created_date"],
             item_count=0,  # Will be set separately when needed
         )
 

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 from app.core.database import db_manager
@@ -27,29 +28,32 @@ class WSJFService:
         item = WSJFItem(**item_data.model_dump())
 
         conn = self.db.connect()
+
         conn.execute(
             """
             INSERT INTO wsjf_items (
                 id, subject, description, business_value, time_criticality,
                 risk_reduction, job_size, status, owner, team, program_increment_id, created_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%(id)s, %(subject)s, %(description)s, %(business_value)s, %(time_criticality)s,
+                     %(risk_reduction)s, %(job_size)s, %(status)s, %(owner)s, %(team)s, %(program_increment_id)s, %(created_date)s)
             """,
-            [
-                str(item.id),
-                item.subject,
-                item.description,
-                item.business_value.model_dump_json(),
-                item.time_criticality.model_dump_json(),
-                item.risk_reduction.model_dump_json(),
-                item.job_size.model_dump_json(),
-                item.status.value,
-                item.owner,
-                item.team,
-                str(item.program_increment_id),
-                item.created_date,
-            ],
+            {
+                "id": str(item.id),
+                "subject": item.subject,
+                "description": item.description,
+                "business_value": item.business_value.model_dump_json(),
+                "time_criticality": item.time_criticality.model_dump_json(),
+                "risk_reduction": item.risk_reduction.model_dump_json(),
+                "job_size": item.job_size.model_dump_json(),
+                "status": item.status.value,
+                "owner": item.owner,
+                "team": item.team,
+                "program_increment_id": str(item.program_increment_id),
+                "created_date": item.created_date,
+            },
         )
 
+        conn.commit()
         return item
 
     def get_item(self, item_id: UUID) -> WSJFItem | None:
@@ -62,9 +66,10 @@ class WSJFService:
             WSJFItem | None: The WSJF item if found, None otherwise.
         """
         conn = self.db.connect()
-        result = conn.execute(
-            "SELECT * FROM wsjf_items WHERE id = ?", [str(item_id)]
-        ).fetchone()
+
+        result = conn.fetchone(
+            "SELECT * FROM wsjf_items WHERE id = %(id)s", {"id": str(item_id)}
+        )
 
         if not result:
             return None
@@ -85,14 +90,14 @@ class WSJFService:
         """
         conn = self.db.connect()
         if program_increment_id:
-            results = conn.execute(
-                "SELECT * FROM wsjf_items WHERE program_increment_id = ? ORDER BY created_date DESC",
-                [str(program_increment_id)],
-            ).fetchall()
+            results = conn.fetchall(
+                "SELECT * FROM wsjf_items WHERE program_increment_id = %(id)s ORDER BY created_date DESC",
+                {"id": str(program_increment_id)},
+            )
         else:
-            results = conn.execute(
+            results = conn.fetchall(
                 "SELECT * FROM wsjf_items ORDER BY created_date DESC"
-            ).fetchall()
+            )
 
         items = [self._row_to_wsjf_item(row) for row in results]
         return self._add_priorities(items)
@@ -133,9 +138,21 @@ class WSJFService:
         values.append(str(item_id))
 
         conn = self.db.connect()
-        conn.execute(
-            f"UPDATE wsjf_items SET {', '.join(set_clauses)} WHERE id = ?", values
+        update_params = {
+            field.split(" = ")[0]: values[i] for i, field in enumerate(set_clauses)
+        }
+        update_params["id"] = str(item_id)
+
+        param_names = ", ".join(
+            [
+                f"{field.split(' = ')[0]} = %({field.split(' = ')[0]})s"
+                for field in set_clauses
+            ]
         )
+        conn.execute(
+            f"UPDATE wsjf_items SET {param_names} WHERE id = %(id)s", update_params
+        )
+        conn.commit()
 
         return self.get_item(item_id)
 
@@ -149,8 +166,9 @@ class WSJFService:
             bool: True if the item was deleted, False if not found.
         """
         conn = self.db.connect()
-        result = conn.execute("DELETE FROM wsjf_items WHERE id = ?", [str(item_id)])
-        return result.rowcount > 0
+        conn.execute("DELETE FROM wsjf_items WHERE id = %(id)s", {"id": str(item_id)})
+        conn.commit()
+        return True
 
     def create_batch(self, items_data: list[WSJFItemCreate]) -> list[WSJFItem]:
         """Create multiple WSJF items in batch.
@@ -173,24 +191,26 @@ class WSJFService:
                 INSERT INTO wsjf_items (
                     id, subject, description, business_value, time_criticality,
                     risk_reduction, job_size, status, owner, team, program_increment_id, created_date
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%(id)s, %(subject)s, %(description)s, %(business_value)s, %(time_criticality)s,
+                         %(risk_reduction)s, %(job_size)s, %(status)s, %(owner)s, %(team)s, %(program_increment_id)s, %(created_date)s)
                 """,
-                [
-                    str(item.id),
-                    item.subject,
-                    item.description,
-                    item.business_value.model_dump_json(),
-                    item.time_criticality.model_dump_json(),
-                    item.risk_reduction.model_dump_json(),
-                    item.job_size.model_dump_json(),
-                    item.status.value,
-                    item.owner,
-                    item.team,
-                    str(item.program_increment_id),
-                    item.created_date,
-                ],
+                {
+                    "id": str(item.id),
+                    "subject": item.subject,
+                    "description": item.description,
+                    "business_value": item.business_value.model_dump_json(),
+                    "time_criticality": item.time_criticality.model_dump_json(),
+                    "risk_reduction": item.risk_reduction.model_dump_json(),
+                    "job_size": item.job_size.model_dump_json(),
+                    "status": item.status.value,
+                    "owner": item.owner,
+                    "team": item.team,
+                    "program_increment_id": str(item.program_increment_id),
+                    "created_date": item.created_date,
+                },
             )
 
+        conn.commit()
         return items
 
     def get_sample_data(self) -> list[WSJFItemResponse]:
@@ -203,12 +223,12 @@ class WSJFService:
         conn = self.db.connect()
 
         # Check if sample PI exists
-        pi_result = conn.execute(
-            "SELECT id FROM program_increments WHERE name = 'PI18'"
-        ).fetchone()
+        pi_result = conn.fetchone(
+            "SELECT id FROM program_increments WHERE name = %(name)s", {"name": "PI18"}
+        )
 
         if pi_result:
-            sample_pi_id = UUID(pi_result[0])
+            sample_pi_id = UUID(pi_result["id"])
         else:
             # Create sample PI
             sample_pi = ProgramIncrement(
@@ -223,21 +243,22 @@ class WSJFService:
                 """
                 INSERT INTO program_increments (
                     id, name, description, start_date, end_date, status, created_date
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%(id)s, %(name)s, %(description)s, %(start_date)s, %(end_date)s, %(status)s, %(created_date)s)
                 """,
-                [
-                    str(sample_pi.id),
-                    sample_pi.name,
-                    sample_pi.description,
-                    sample_pi.start_date,
-                    sample_pi.end_date,
-                    sample_pi.status,
-                    sample_pi.created_date,
-                ],
+                {
+                    "id": str(sample_pi.id),
+                    "name": sample_pi.name,
+                    "description": sample_pi.description,
+                    "start_date": sample_pi.start_date,
+                    "end_date": sample_pi.end_date,
+                    "status": sample_pi.status,
+                    "created_date": sample_pi.created_date,
+                },
             )
+            conn.commit()
             sample_pi_id = sample_pi.id
 
-        from app.models.wsjf_item import WSJFSubValues, JobSizeSubValues
+        from app.models.wsjf_item import JobSizeSubValues, WSJFSubValues
 
         sample_items = [
             WSJFItemCreate(
@@ -285,52 +306,79 @@ class WSJFService:
 
         # Clear existing sample data and create new
         conn.execute(
-            "DELETE FROM wsjf_items WHERE program_increment_id = ?", [str(sample_pi_id)]
+            "DELETE FROM wsjf_items WHERE program_increment_id = %(id)s",
+            {"id": str(sample_pi_id)},
         )
+        conn.commit()
 
         created_items = self.create_batch(sample_items)
         return self._add_priorities(
             [WSJFItem.model_validate(item) for item in created_items]
         )
 
-    def _row_to_wsjf_item(self, row) -> WSJFItem:
+    def _row_to_wsjf_item(self, row: dict[str, Any]) -> WSJFItem:
         """Convert database row to WSJFItem.
 
         Args:
-            row: Database row tuple containing WSJF item data.
+            row: Database row dictionary containing WSJF item data.
 
         Returns:
             WSJFItem: Converted WSJF item object.
         """
         import json
 
-        from app.models.wsjf_item import WSJFSubValues, JobSizeSubValues
+        from app.models.wsjf_item import JobSizeSubValues, WSJFSubValues
 
         # Handle UUID that might already be a UUID object or string
-        item_id = row[0] if isinstance(row[0], UUID) else UUID(row[0])
+        item_id = row["id"] if isinstance(row["id"], UUID) else UUID(row["id"])
 
-        # Parse JSON sub-values
-        business_value = WSJFSubValues.model_validate(json.loads(row[3]))
-        time_criticality = WSJFSubValues.model_validate(json.loads(row[4]))
-        risk_reduction = WSJFSubValues.model_validate(json.loads(row[5]))
-        job_size = JobSizeSubValues.model_validate(json.loads(row[6]))
+        # Parse JSON sub-values (PostgreSQL returns JSONB as dict, not string)
+        business_value_data = (
+            row["business_value"]
+            if isinstance(row["business_value"], dict)
+            else json.loads(row["business_value"])
+        )
+        time_criticality_data = (
+            row["time_criticality"]
+            if isinstance(row["time_criticality"], dict)
+            else json.loads(row["time_criticality"])
+        )
+        risk_reduction_data = (
+            row["risk_reduction"]
+            if isinstance(row["risk_reduction"], dict)
+            else json.loads(row["risk_reduction"])
+        )
+        job_size_data = (
+            row["job_size"]
+            if isinstance(row["job_size"], dict)
+            else json.loads(row["job_size"])
+        )
+
+        business_value = WSJFSubValues.model_validate(business_value_data)
+        time_criticality = WSJFSubValues.model_validate(time_criticality_data)
+        risk_reduction = WSJFSubValues.model_validate(risk_reduction_data)
+        job_size = JobSizeSubValues.model_validate(job_size_data)
 
         # Handle program_increment_id UUID
-        pi_id = row[10] if isinstance(row[10], UUID) else UUID(row[10])
+        pi_id = (
+            row["program_increment_id"]
+            if isinstance(row["program_increment_id"], UUID)
+            else UUID(row["program_increment_id"])
+        )
 
         return WSJFItem(
             id=item_id,
-            subject=row[1],
-            description=row[2],
+            subject=row["subject"],
+            description=row["description"],
             business_value=business_value,
             time_criticality=time_criticality,
             risk_reduction=risk_reduction,
             job_size=job_size,
-            status=row[7],
-            owner=row[8],
-            team=row[9],
+            status=row["status"],
+            owner=row["owner"],
+            team=row["team"],
             program_increment_id=pi_id,
-            created_date=row[11],
+            created_date=row["created_date"],
         )
 
     def _add_priorities(self, items: list[WSJFItem]) -> list[WSJFItemResponse]:

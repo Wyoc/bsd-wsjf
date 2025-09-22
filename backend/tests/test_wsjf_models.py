@@ -1,8 +1,9 @@
-import pytest
 from uuid import uuid4
+
+import pytest
 from pydantic import ValidationError
 
-from app.models import WSJFItemCreate, WSJFSubValues, WSJFStatus
+from app.models import WSJFItemCreate, WSJFStatus, WSJFSubValues
 
 
 def test_wsjf_item_create_valid():
@@ -57,7 +58,9 @@ def test_wsjf_score_calculation():
     item = WSJFItem(
         subject="Test Feature",
         business_value=WSJFSubValues(dev_business=8),
-        time_criticality=WSJFSubValues(pms_business=5, consultants_business=3),  # max = 5
+        time_criticality=WSJFSubValues(
+            pms_business=5, consultants_business=3
+        ),  # max = 5
         risk_reduction=WSJFSubValues(support_business=3),
         job_size=5,
         program_increment_id=uuid4(),
