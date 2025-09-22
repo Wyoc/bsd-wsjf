@@ -3,23 +3,47 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
-from .status import WSJFStatus
+from .status import GoNoGoStatus, WSJFStatus
 
 
 # Sub-value structure for WSJF components
 class WSJFSubValues(BaseModel):
+    # Product Management & Ownership
     pms_business: int | None = None
     pos_business: int | None = None
+
+    # Business Leadership
     bos_agri_business: int | None = None
     bos_cabinet_business: int | None = None
     consultants_business: int | None = None
+
+    # Development Team
     dev_business: int | None = None
     dev_technical: int | None = None
+
+    # Information Architecture
     ia_business: int | None = None
     ia_technical: int | None = None
+
+    # DevOps & Infrastructure
     devops_business: int | None = None
     devops_technical: int | None = None
+
+    # Support & Operations
     support_business: int | None = None
+
+    def calculate_max_value(self) -> int:
+        """Calculate the maximum value from all non-null sub-values."""
+        values = [v for v in self.model_dump().values() if v is not None]
+        return max(values) if values else 0
+
+
+# Job Size sub-values structure  
+class JobSizeSubValues(BaseModel):
+    dev: int | None = None
+    ia: int | None = None
+    devops: int | None = None
+    exploit: int | None = None
 
     def calculate_max_value(self) -> int:
         """Calculate the maximum value from all non-null sub-values."""
@@ -29,10 +53,15 @@ class WSJFSubValues(BaseModel):
     @field_validator("*")
     @classmethod
     def validate_fibonacci_values(cls, v: int | None) -> int | None:
-        """Validate that all values are valid Fibonacci numbers when not None."""
-        if v is not None and v not in FIBONACCI_VALUES:
-            raise ValueError(f"Values must be one of {FIBONACCI_VALUES}")
+        """Validate that values are Fibonacci numbers or None."""
+        if v is None:
+            return v
+        
+        fibonacci_sequence = [1, 2, 3, 5, 8, 13, 21]
+        if v not in fibonacci_sequence:
+            raise ValueError(f"Value must be a Fibonacci number: {fibonacci_sequence}")
         return v
+
 
 
 # Fibonacci values for job size estimation
@@ -53,51 +82,22 @@ class WSJFItemBase(BaseModel):
     risk_reduction: WSJFSubValues = Field(
         ..., description="Sub-values for risk reduction assessment"
     )
-    job_size: int = Field(
-        ..., description="Effort required (Fibonacci: 1,2,3,5,8,13,21)"
+    job_size: JobSizeSubValues = Field(
+        ..., description="Sub-values for job size assessment"
     )
     status: WSJFStatus = Field(WSJFStatus.NEW, description="Current state")
+    go_no_go_status: GoNoGoStatus = Field(
+        GoNoGoStatus.PENDING, description="PI embedding decision status"
+    )
     owner: str | None = Field(None, max_length=100, description="Responsible person")
     team: str | None = Field(None, max_length=100, description="Assigned team")
     program_increment_id: UUID = Field(
         ..., description="Program Increment UUID reference"
     )
 
-    @field_validator("business_value", "time_criticality", "risk_reduction")
-    @classmethod
-    def validate_at_least_one_value(cls, v: WSJFSubValues) -> WSJFSubValues:
-        """Validate that at least one sub-value is set.
+    # Removed validation requirement for at least one sub-value to be set
+    # Items can now be created with no values, but should be highlighted in UI
 
-        Args:
-            v (WSJFSubValues): The sub-values to validate.
-
-        Returns:
-            WSJFSubValues: The validated sub-values.
-
-        Raises:
-            ValueError: If no sub-values are set.
-        """
-        if v.calculate_max_value() == 0:
-            raise ValueError("At least one sub-value must be set")
-        return v
-
-    @field_validator("job_size")
-    @classmethod
-    def validate_job_size_fibonacci(cls, v: int) -> int:
-        """Validate that job size is a valid Fibonacci number.
-
-        Args:
-            v (int): The job size value to validate.
-
-        Returns:
-            int: The validated job size value.
-
-        Raises:
-            ValueError: If job size is not a valid Fibonacci value.
-        """
-        if v not in FIBONACCI_VALUES:
-            raise ValueError(f"Job size must be one of {FIBONACCI_VALUES}")
-        return v
 
 
 class WSJFItemCreate(WSJFItemBase):
@@ -109,7 +109,7 @@ class WSJFItemCreate(WSJFItemBase):
                 "business_value": {"dev_technical": 13, "ia_business": 8},
                 "time_criticality": {"pms_business": 21, "consultants_business": 5},
                 "risk_reduction": {"dev_business": 8, "support_business": 3},
-                "job_size": 5,
+                "job_size": {"dev": 5, "ia": 3, "devops": 2, "exploit": 1},
                 "status": "New",
                 "owner": "Alice Johnson",
                 "team": "Security Team",
@@ -125,7 +125,7 @@ class WSJFItemUpdate(BaseModel):
     business_value: WSJFSubValues | None = Field(None)
     time_criticality: WSJFSubValues | None = Field(None)
     risk_reduction: WSJFSubValues | None = Field(None)
-    job_size: int | None = Field(None)
+    job_size: JobSizeSubValues | None = Field(None)
     status: WSJFStatus | None = None
     owner: str | None = Field(None, max_length=100)
     team: str | None = Field(None, max_length=100)
@@ -133,23 +133,6 @@ class WSJFItemUpdate(BaseModel):
         None, description="Program Increment UUID reference"
     )
 
-    @field_validator("job_size")
-    @classmethod
-    def validate_job_size_fibonacci(cls, v: int | None) -> int | None:
-        """Validate that optional job size is a valid Fibonacci number.
-
-        Args:
-            v (int | None): The optional job size value to validate.
-
-        Returns:
-            int | None: The validated job size value or None.
-
-        Raises:
-            ValueError: If job size is not a valid Fibonacci value.
-        """
-        if v is not None and v not in FIBONACCI_VALUES:
-            raise ValueError(f"Job size must be one of {FIBONACCI_VALUES}")
-        return v
 
 
 class WSJFItem(WSJFItemBase):
@@ -170,9 +153,14 @@ class WSJFItem(WSJFItemBase):
         business_score = self.business_value.calculate_max_value()
         time_score = self.time_criticality.calculate_max_value()
         risk_score = self.risk_reduction.calculate_max_value()
+        job_size_score = self.job_size.calculate_max_value()
+
+        # Avoid division by zero
+        if job_size_score == 0:
+            return 0.0
 
         return round(
-            (business_score + time_score + risk_score) / self.job_size,
+            (business_score + time_score + risk_score) / job_size_score,
             2,
         )
 

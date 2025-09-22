@@ -60,7 +60,7 @@ class DatabaseManager:
             business_value JSON NOT NULL,
             time_criticality JSON NOT NULL,
             risk_reduction JSON NOT NULL,
-            job_size INTEGER NOT NULL CHECK (job_size IN (1, 2, 3, 5, 8, 13, 21)),
+            job_size JSON NOT NULL,
             status VARCHAR(20) NOT NULL DEFAULT 'New',
             owner VARCHAR(100),
             team VARCHAR(100),

@@ -1,5 +1,5 @@
 import React from 'react';
-import { WSJFItem, calculateMaxValue } from '../types/wsjf';
+import { WSJFItem, calculateMaxValue, calculateMaxJobSize } from '../types/wsjf';
 import { Tooltip } from './Tooltip';
 
 interface WSJFValesTooltipProps {
@@ -23,7 +23,7 @@ export const WSJFValuesToolip: React.FC<WSJFValesTooltipProps> = ({ item, childr
           <span className="font-medium text-white">{calculateMaxValue(item.risk_reduction)}</span>
           
           <span className="text-gray-300">Job Size:</span>
-          <span className="font-medium text-white">{item.job_size}</span>
+          <span className="font-medium text-white">{calculateMaxJobSize(item.job_size)}</span>
         </div>
         
         <div className="border-t border-gray-600 pt-2 mt-2">
@@ -34,7 +34,7 @@ export const WSJFValuesToolip: React.FC<WSJFValesTooltipProps> = ({ item, childr
         </div>
         
         <div className="text-xs text-gray-400 mt-2">
-          Formula: (BV + TC + RR) ÷ JS = ({calculateMaxValue(item.business_value)} + {calculateMaxValue(item.time_criticality)} + {calculateMaxValue(item.risk_reduction)}) ÷ {item.job_size} = {item.wsjf_score.toFixed(2)}
+          Formula: (BV + TC + RR) ÷ JS = ({calculateMaxValue(item.business_value)} + {calculateMaxValue(item.time_criticality)} + {calculateMaxValue(item.risk_reduction)}) ÷ {calculateMaxJobSize(item.job_size)} = {item.wsjf_score.toFixed(2)}
         </div>
       </div>
     </div>

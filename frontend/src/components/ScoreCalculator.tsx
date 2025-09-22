@@ -1,11 +1,11 @@
 import { Tooltip } from './Tooltip';
-import { WSJFSubValues, calculateMaxValue } from '../types/wsjf';
+import { WSJFSubValues, JobSizeSubValues, calculateMaxValue, calculateMaxJobSize } from '../types/wsjf';
 
 interface ScoreCalculatorProps {
   businessValue: WSJFSubValues;
   timeCriticality: WSJFSubValues;
   riskReduction: WSJFSubValues;
-  jobSize: number;
+  jobSize: JobSizeSubValues;
 }
 
 export const ScoreCalculator = ({
@@ -15,11 +15,12 @@ export const ScoreCalculator = ({
   jobSize,
 }: ScoreCalculatorProps) => {
   const calculateWSJF = () => {
-    if (jobSize === 0) return 0;
+    const jobSizeScore = calculateMaxJobSize(jobSize);
+    if (jobSizeScore === 0) return 0;
     const businessScore = calculateMaxValue(businessValue);
     const timeScore = calculateMaxValue(timeCriticality);
     const riskScore = calculateMaxValue(riskReduction);
-    return Math.round(((businessScore + timeScore + riskScore) / jobSize) * 100) / 100;
+    return Math.round(((businessScore + timeScore + riskScore) / jobSizeScore) * 100) / 100;
   };
 
   const score = calculateWSJF();
@@ -33,6 +34,7 @@ export const ScoreCalculator = ({
   const businessScore = calculateMaxValue(businessValue);
   const timeScore = calculateMaxValue(timeCriticality);
   const riskScore = calculateMaxValue(riskReduction);
+  const jobSizeScore = calculateMaxJobSize(jobSize);
 
   const tooltipContent = (
     <div className="text-left">
@@ -49,7 +51,7 @@ export const ScoreCalculator = ({
           <span className="font-medium text-white">Max: {riskScore}</span>
           
           <span className="text-gray-300">Job Size:</span>
-          <span className="font-medium text-white">{jobSize}</span>
+          <span className="font-medium text-white">Max: {jobSizeScore}</span>
         </div>
         
         <div className="border-t border-gray-600 pt-2 mt-2">
@@ -57,7 +59,7 @@ export const ScoreCalculator = ({
             Formula: (BV + TC + RR) ÷ JS
           </div>
           <div className="text-xs text-gray-400">
-            ({businessScore} + {timeScore} + {riskScore}) ÷ {jobSize} = {score.toFixed(2)}
+            ({businessScore} + {timeScore} + {riskScore}) ÷ {jobSizeScore} = {score.toFixed(2)}
           </div>
         </div>
         

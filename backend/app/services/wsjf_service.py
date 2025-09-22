@@ -41,7 +41,7 @@ class WSJFService:
                 item.business_value.model_dump_json(),
                 item.time_criticality.model_dump_json(),
                 item.risk_reduction.model_dump_json(),
-                item.job_size,
+                item.job_size.model_dump_json(),
                 item.status.value,
                 item.owner,
                 item.team,
@@ -179,10 +179,10 @@ class WSJFService:
                     str(item.id),
                     item.subject,
                     item.description,
-                    item.business_value,
-                    item.time_criticality,
-                    item.risk_reduction,
-                    item.job_size,
+                    item.business_value.model_dump_json(),
+                    item.time_criticality.model_dump_json(),
+                    item.risk_reduction.model_dump_json(),
+                    item.job_size.model_dump_json(),
                     item.status.value,
                     item.owner,
                     item.team,
@@ -237,7 +237,7 @@ class WSJFService:
             )
             sample_pi_id = sample_pi.id
 
-        from app.models.wsjf_item import WSJFSubValues
+        from app.models.wsjf_item import WSJFSubValues, JobSizeSubValues
 
         sample_items = [
             WSJFItemCreate(
@@ -250,7 +250,7 @@ class WSJFService:
                     consultants_business=13, support_business=5
                 ),
                 risk_reduction=WSJFSubValues(dev_business=8, devops_technical=3),
-                job_size=5,
+                job_size=JobSizeSubValues(dev=5, ia=3, devops=2, exploit=1),
                 owner="Alice Johnson",
                 team="Security Team",
                 program_increment_id=sample_pi_id,
@@ -263,7 +263,7 @@ class WSJFService:
                 risk_reduction=WSJFSubValues(
                     consultants_business=3, support_business=2
                 ),
-                job_size=8,
+                job_size=JobSizeSubValues(dev=8, ia=5, devops=3, exploit=2),
                 owner="Bob Smith",
                 team="Mobile Team",
                 program_increment_id=sample_pi_id,
@@ -276,7 +276,7 @@ class WSJFService:
                     bos_cabinet_business=13, consultants_business=8
                 ),
                 risk_reduction=WSJFSubValues(dev_technical=8, support_business=5),
-                job_size=8,
+                job_size=JobSizeSubValues(dev=8, ia=5, devops=3, exploit=1),
                 owner="Carol Davis",
                 team="Backend Team",
                 program_increment_id=sample_pi_id,
@@ -304,7 +304,7 @@ class WSJFService:
         """
         import json
 
-        from app.models.wsjf_item import WSJFSubValues
+        from app.models.wsjf_item import WSJFSubValues, JobSizeSubValues
 
         # Handle UUID that might already be a UUID object or string
         item_id = row[0] if isinstance(row[0], UUID) else UUID(row[0])
@@ -313,6 +313,7 @@ class WSJFService:
         business_value = WSJFSubValues.model_validate(json.loads(row[3]))
         time_criticality = WSJFSubValues.model_validate(json.loads(row[4]))
         risk_reduction = WSJFSubValues.model_validate(json.loads(row[5]))
+        job_size = JobSizeSubValues.model_validate(json.loads(row[6]))
 
         # Handle program_increment_id UUID
         pi_id = row[10] if isinstance(row[10], UUID) else UUID(row[10])
@@ -324,7 +325,7 @@ class WSJFService:
             business_value=business_value,
             time_criticality=time_criticality,
             risk_reduction=risk_reduction,
-            job_size=row[6],
+            job_size=job_size,
             status=row[7],
             owner=row[8],
             team=row[9],

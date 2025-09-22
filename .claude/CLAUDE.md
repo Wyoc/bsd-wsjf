@@ -224,7 +224,7 @@ Core components to develop:
 - Code style guide
 
 ## Success Criteria
-
+à
 ### Functional Requirements
 - ✅ Create, read, update, delete WSJF items
 - ✅ Automatic WSJF score calculation
@@ -248,3 +248,8 @@ Core components to develop:
 - Zero critical security vulnerabilities
 - Load time < 3 seconds
 - Accessibility WCAG 2.1 AA compliant
+
+## Tools
+- You can use the playwright mcp to test the frontend
+- There is a Makefile to do courant commands
+- 

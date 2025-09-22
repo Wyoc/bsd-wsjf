@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ProgramIncrementCreate, PIStatus } from '../types/wsjf';
+import { ProgramIncrementCreate, ProgramIncrementUpdate, ProgramIncrementResponse, PIStatus } from '../types/wsjf';
 import { apiClient } from '../api/client';
 
 interface PIFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  initialData?: ProgramIncrementResponse;
 }
 
 interface PIFormData {
@@ -16,9 +17,14 @@ interface PIFormData {
   status: PIStatus;
 }
 
-export const PIForm: React.FC<PIFormProps> = ({ onSuccess, onCancel }) => {
+export const PIForm: React.FC<PIFormProps> = ({ onSuccess, onCancel, initialData }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const isEditMode = !!initialData;
+
+  const formatDateForInput = (isoDate: string) => {
+    return isoDate.split('T')[0];
+  };
 
   const {
     register,
@@ -27,11 +33,11 @@ export const PIForm: React.FC<PIFormProps> = ({ onSuccess, onCancel }) => {
     watch
   } = useForm<PIFormData>({
     defaultValues: {
-      name: '',
-      description: '',
-      start_date: '',
-      end_date: '',
-      status: PIStatus.PLANNING,
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      start_date: initialData ? formatDateForInput(initialData.start_date) : '',
+      end_date: initialData ? formatDateForInput(initialData.end_date) : '',
+      status: initialData?.status || PIStatus.PLANNING,
     },
   });
 
@@ -42,18 +48,31 @@ export const PIForm: React.FC<PIFormProps> = ({ onSuccess, onCancel }) => {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      const piData: ProgramIncrementCreate = {
-        name: data.name,
-        description: data.description,
-        start_date: new Date(data.start_date).toISOString(),
-        end_date: new Date(data.end_date).toISOString(),
-        status: data.status,
-      };
+      if (isEditMode && initialData) {
+        const updateData: ProgramIncrementUpdate = {
+          name: data.name,
+          description: data.description,
+          start_date: new Date(data.start_date).toISOString(),
+          end_date: new Date(data.end_date).toISOString(),
+          status: data.status,
+        };
 
-      await apiClient.createPI(piData);
+        await apiClient.updatePI(initialData.id, updateData);
+      } else {
+        const piData: ProgramIncrementCreate = {
+          name: data.name,
+          description: data.description,
+          start_date: new Date(data.start_date).toISOString(),
+          end_date: new Date(data.end_date).toISOString(),
+          status: data.status,
+        };
+
+        await apiClient.createPI(piData);
+      }
+      
       onSuccess();
     } catch (error: any) {
-      setSubmitError(error.detail || 'Failed to create Program Increment');
+      setSubmitError(error.detail || `Failed to ${isEditMode ? 'update' : 'create'} Program Increment`);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,7 +82,9 @@ export const PIForm: React.FC<PIFormProps> = ({ onSuccess, onCancel }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6">Create Program Increment</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-6">
+        {isEditMode ? 'Edit Program Increment' : 'Create Program Increment'}
+      </h2>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {submitError && (
@@ -185,7 +206,7 @@ export const PIForm: React.FC<PIFormProps> = ({ onSuccess, onCancel }) => {
             disabled={isSubmitting}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Creating...' : 'Create PI'}
+            {isSubmitting ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update PI' : 'Create PI')}
           </button>
         </div>
       </form>

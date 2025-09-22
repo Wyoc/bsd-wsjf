@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Calendar, BarChart3, Edit } from 'lucide-react';
 import { ProgramIncrementResponse, PIStatus } from '../types/wsjf';
 import { PIForm } from './PIForm';
 import { apiClient } from '../api/client';
@@ -13,6 +13,7 @@ export const PIManagementPage: React.FC<PIManagementPageProps> = ({ onPICreated 
   const [pis, setPIs] = useState<ProgramIncrementResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingPI, setEditingPI] = useState<ProgramIncrementResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,6 +39,17 @@ export const PIManagementPage: React.FC<PIManagementPageProps> = ({ onPICreated 
     loadPIs();
     onPICreated();
     toast.success('Program Increment created successfully');
+  };
+
+  const handleEditSuccess = () => {
+    setEditingPI(null);
+    loadPIs();
+    onPICreated();
+    toast.success('Program Increment updated successfully');
+  };
+
+  const handleEditPI = (pi: ProgramIncrementResponse) => {
+    setEditingPI(pi);
   };
 
   const handleDeletePI = async (pi: ProgramIncrementResponse) => {
@@ -202,6 +214,14 @@ export const PIManagementPage: React.FC<PIManagementPageProps> = ({ onPICreated 
 
                     <div className="flex justify-end space-x-2">
                       <button
+                        onClick={() => handleEditPI(pi)}
+                        className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 inline-flex items-center"
+                        title="Edit PI"
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </button>
+                      <button
                         onClick={() => handleDeletePI(pi)}
                         className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300"
                         disabled={pi.item_count > 0}
@@ -223,6 +243,18 @@ export const PIManagementPage: React.FC<PIManagementPageProps> = ({ onPICreated 
               <PIForm
                 onSuccess={handleCreateSuccess}
                 onCancel={() => setShowCreateForm(false)}
+              />
+            </div>
+          </div>
+        )}
+
+        {editingPI && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+              <PIForm
+                onSuccess={handleEditSuccess}
+                onCancel={() => setEditingPI(null)}
+                initialData={editingPI}
               />
             </div>
           </div>

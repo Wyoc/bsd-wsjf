@@ -5,7 +5,6 @@ from .program_increment import (
     ProgramIncrementStats,
     ProgramIncrementUpdate,
 )
-from .status import WSJFStatus
 from .wsjf_item import (
     WSJFItem,
     WSJFItemBase,
@@ -14,6 +13,7 @@ from .wsjf_item import (
     WSJFItemResponse,
     WSJFItemUpdate,
     WSJFSubValues,
+    JobSizeSubValues,
 )
 
 __all__ = [
@@ -25,6 +25,7 @@ __all__ = [
     "WSJFItemResponse",
     "WSJFItemBatch",
     "WSJFSubValues",
+    "JobSizeSubValues",
     "ProgramIncrement",
     "ProgramIncrementCreate",
     "ProgramIncrementResponse",

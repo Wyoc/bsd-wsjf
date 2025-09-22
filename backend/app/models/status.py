@@ -3,7 +3,11 @@ from enum import Enum
 
 class WSJFStatus(str, Enum):
     NEW = "New"
-    IN_PROGRESS = "In Progress"
-    BLOCKED = "Blocked"
-    COMPLETED = "Completed"
-    CANCELLED = "Cancelled"
+    GO = "Go"
+    NO_GO = "No Go"
+
+
+class GoNoGoStatus(str, Enum):
+    PENDING = "Pending"
+    GO = "Go"
+    NO_GO = "No Go"
